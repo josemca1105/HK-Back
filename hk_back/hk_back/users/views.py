@@ -1,8 +1,8 @@
-from django.core.serializers import serialize
-from rest_framework.response import Response
-from rest_framework.views import APIView
 from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.parsers import MultiPartParser, FormParser
 
 from .models import User
 from .serializers import UserSerializer
@@ -57,7 +57,7 @@ class LoginView(APIView):
         return response
     
 # UserView class is used to get the user details
-class UserView(APIView):
+class AuthView(APIView):
     def get(self, request):
         token = request.COOKIES.get('jwt')
         if not token:
@@ -83,3 +83,18 @@ class LogoutView(APIView):
             'message': 'User logged out successfully'
         }
         return response
+    
+class UsersView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get(self, request):
+        token = request.COOKIES.get('jwt')
+
+        if not token:
+            raise AuthenticationFailed('Unauthenticated')
+        
+        serializer = UserSerializer(User.objects.all(), many=True)
+        return Response(
+            status=status.HTTP_200_OK,
+            data=serializer.data
+        )
