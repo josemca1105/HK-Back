@@ -8,4 +8,5 @@ urlpatterns = [
     path('logout', LogoutView.as_view(), name='logout'),
     path('users', UsersView.as_view(), name='users_api'),
     path('users-create', UsersView.as_view(), name='users_create_api'),
+    path('users-update/<int:id>', UsersView.as_view(), name='users_update_api'),
 ]
