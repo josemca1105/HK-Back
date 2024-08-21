@@ -9,4 +9,5 @@ urlpatterns = [
     path('users', UsersView.as_view(), name='users_api'),
     path('users-create', UsersView.as_view(), name='users_create_api'),
     path('users-update/<int:id>', UsersView.as_view(), name='users_update_api'),
+    path('users-delete/<int:id>', UsersView.as_view(), name='users_delete_api'),
 ]

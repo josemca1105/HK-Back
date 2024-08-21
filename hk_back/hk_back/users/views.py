@@ -176,3 +176,27 @@ class UsersView(APIView):
             return response
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request, id):
+        user = self.get_object(id)
+
+        token = request.COOKIES.get('jwt')
+
+        if not token:
+            raise AuthenticationFailed('Unauthenticated')
+        
+        if user is None:
+            return Response(
+                status=status.HTTP_404_NOT_FOUND,
+                data={
+                    'message': 'User not found'
+                }
+            )
+        
+        user.delete()
+        response = Response()
+        response.data = {
+            'status': status.HTTP_200_OK,
+            'message': f'User {id} deleted successfully'
+        }
+        return response
