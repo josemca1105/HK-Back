@@ -1,8 +1,9 @@
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.validators import ValidationError
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from .models import User
 from .serializers import UserSerializer
@@ -85,7 +86,7 @@ class LogoutView(APIView):
         return response
     
 class UsersView(APIView):
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get(self, request):
         token = request.COOKIES.get('jwt')
@@ -98,3 +99,38 @@ class UsersView(APIView):
             status=status.HTTP_200_OK,
             data=serializer.data
         )
+    
+    def post(self, request):
+        serializer = UserSerializer(data=request.data)
+
+        token = request.COOKIES.get('jwt')
+
+        if not token:
+            raise AuthenticationFailed('Unauthenticated')
+        
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError as e:
+            if 'email' in e.detail:
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST,
+                    data={
+                        'message': 'Email already exists'
+                    }
+                )
+            else:
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST,
+                    data={
+                        'message': f'Invalid data, ${e.detail}'
+                    }
+                )
+        
+        serializer.save()
+        response = Response()
+        response.data = {
+            'status': status.HTTP_200_OK,
+            'message': 'User created successfully',
+            'data': serializer.data
+        }
+        return response
