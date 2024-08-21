@@ -88,6 +88,12 @@ class LogoutView(APIView):
 class UsersView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
+    def get_object(self, pk):
+        try:
+            return User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            raise None
+
     def get(self, request):
         token = request.COOKIES.get('jwt')
 
@@ -134,3 +140,39 @@ class UsersView(APIView):
             'data': serializer.data
         }
         return response
+    
+    def patch(self, request, id):
+        user = self.get_object(id)
+
+        token = request.COOKIES.get('jwt')
+
+        if not token:
+            raise AuthenticationFailed('Unauthenticated')
+        
+        if user is None:
+            return Response(
+                status=status.HTTP_404_NOT_FOUND,
+                data={
+                    'message': 'User not found'
+                }
+            )
+        
+        serializer = UserSerializer(user, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            phone_number = request.data.get('phone', None)
+            if phone_number:
+                if len(phone_number) < 10:
+                    raise ValidationError({'error': 'Phone number must be greater than 10'})
+            
+            serializer.save()
+
+            response = Response()
+            response.data = {
+                'status': status.HTTP_200_OK,
+                'message': 'User updated successfully',
+                'data': serializer.data
+            }
+            return response
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
