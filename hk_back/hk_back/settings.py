@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'hk_back.users',
+    'hk_back.inmuebles',
 ]
 
 MIDDLEWARE = [
