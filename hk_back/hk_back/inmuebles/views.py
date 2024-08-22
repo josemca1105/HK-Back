@@ -152,3 +152,30 @@ class InmuebleDetailView(APIView):
             'data': serializer.data
         }
         return response
+    
+    def delete(self, request, id):
+        inmueble = self.get_object(id)
+        if inmueble is None:
+            return Response(
+                status=status.HTTP_404_NOT_FOUND,
+                data={
+                    'message': 'Inmueble no encontrado'
+                }
+            )
+        
+        token = request.COOKIES.get('jwt')
+        if not token:
+            raise AuthenticationFailed('Unauthenticated')
+        
+        try:
+            jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        except (ExpiredSignatureError, InvalidSignatureError):
+            raise AuthenticationFailed('Unauthenticated')
+        
+        inmueble.delete()
+        response = Response()
+        response.data = {
+            'status': status.HTTP_200_OK,
+            'message': 'Inmueble eliminado exitosamente'
+        }
+        return response

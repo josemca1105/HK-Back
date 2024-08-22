@@ -200,7 +200,6 @@ class UserDetailView(APIView):
             raise AuthenticationFailed('Unauthenticated')
         
         serializer = UserSerializer(user, data=request.data, partial=True)
-
         if serializer.is_valid():
             phone_number = request.data.get('phone', None)
             if phone_number:
@@ -230,7 +229,6 @@ class UserDetailView(APIView):
             )
         
         token = request.COOKIES.get('jwt')
-
         if not token:
             raise AuthenticationFailed('Unauthenticated')
         
