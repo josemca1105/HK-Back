@@ -10,6 +10,8 @@ from .serializers import UserSerializer
 
 import jwt, datetime
 
+from jwt.exceptions import ExpiredSignatureError, InvalidSignatureError
+
 from django.conf import settings
 
 JWT_SECRET = settings.SECRET_KEY
@@ -38,7 +40,6 @@ class LoginView(APIView):
         password = request.data['password']
 
         user = User.objects.filter(email=email).first()
-
         if user is None:
             raise AuthenticationFailed('User not found')
         if not user.check_password(password):
@@ -95,7 +96,6 @@ class UsersListView(APIView):
 
     def get(self, request):
         token = request.COOKIES.get('jwt')
-
         if not token:
             raise AuthenticationFailed('Unauthenticated')
         
@@ -113,7 +113,6 @@ class UserCreateView(APIView):
         serializer = UserSerializer(data=request.data)
 
         token = request.COOKIES.get('jwt')
-
         if not token:
             raise AuthenticationFailed('Unauthenticated')
         
@@ -148,15 +147,41 @@ class UserCreateView(APIView):
 class UserDetailView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
-    def get_object(self, pk):
+    def get_object(self, id):
         try:
-            return User.objects.get(pk=pk)
+            return User.objects.get(pk=id)
         except User.DoesNotExist:
-            raise None
+            return None
+        
+    def get(self, request, id):
+        inmueble = self.get_object(id)
+        if inmueble is None:
+            return Response(
+                status=status.HTTP_404_NOT_FOUND,
+                data={
+                    'message': 'User no encontrado'
+                }
+            )
+        
+        token = request.COOKIES.get('jwt')
+        if not token:
+            raise AuthenticationFailed('Unauthenticated')
+        
+        try:
+            jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        except (ExpiredSignatureError, InvalidSignatureError):
+            raise AuthenticationFailed('Unauthenticated')
+        
+        serializer = UserSerializer(inmueble)
+        response = Response()
+        response.data = {
+            'status': status.HTTP_200_OK,
+            'data': serializer.data
+        }
+        return response
     
     def patch(self, request, id):
         user = self.get_object(id)
-
         if user is None:
             return Response(
                 status=status.HTTP_404_NOT_FOUND,
@@ -166,7 +191,6 @@ class UserDetailView(APIView):
             )
         
         token = request.COOKIES.get('jwt')
-
         if not token:
             raise AuthenticationFailed('Unauthenticated')
         
@@ -193,7 +217,6 @@ class UserDetailView(APIView):
     
     def delete(self, request, id):
         user = self.get_object(id)
-
         if user is None:
             return Response(
                 status=status.HTTP_404_NOT_FOUND,
