@@ -154,8 +154,8 @@ class UserDetailView(APIView):
             return None
         
     def get(self, request, id):
-        inmueble = self.get_object(id)
-        if inmueble is None:
+        user = self.get_object(id)
+        if user is None:
             return Response(
                 status=status.HTTP_404_NOT_FOUND,
                 data={
@@ -172,7 +172,7 @@ class UserDetailView(APIView):
         except (ExpiredSignatureError, InvalidSignatureError):
             raise AuthenticationFailed('Unauthenticated')
         
-        serializer = UserSerializer(inmueble)
+        serializer = UserSerializer(user)
         response = Response()
         response.data = {
             'status': status.HTTP_200_OK,
@@ -194,6 +194,10 @@ class UserDetailView(APIView):
         if not token:
             raise AuthenticationFailed('Unauthenticated')
         
+        try:
+            jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        except (ExpiredSignatureError, InvalidSignatureError):
+            raise AuthenticationFailed('Unauthenticated')
         
         serializer = UserSerializer(user, data=request.data, partial=True)
 

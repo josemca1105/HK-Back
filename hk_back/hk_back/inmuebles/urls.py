@@ -11,4 +11,5 @@ urlpatterns = [
     path('inmuebles-personales', InmueblesPersonalView.as_view(), name='inmuebles-personales'),
     path('inmuebles-create', InmueblesCreateView.as_view(), name='inmuebles-create'),
     path('inmuebles/<int:id>', InmuebleDetailView.as_view(), name='inmueble-detail'),
+    path('inmuebles-update/<int:id>', InmuebleDetailView.as_view(), name='inmueble-update'),
 ]
