@@ -10,6 +10,12 @@ from .serializers import UserSerializer
 
 import jwt, datetime
 
+from jwt.exceptions import ExpiredSignatureError, InvalidSignatureError
+
+from django.conf import settings
+
+JWT_SECRET = settings.SECRET_KEY
+
 # Create your views here.
 
 # RegisterView class is used to register a new user
@@ -34,7 +40,6 @@ class LoginView(APIView):
         password = request.data['password']
 
         user = User.objects.filter(email=email).first()
-
         if user is None:
             raise AuthenticationFailed('User not found')
         if not user.check_password(password):
@@ -46,7 +51,7 @@ class LoginView(APIView):
             'iat': datetime.datetime.now(datetime.UTC)
         }
 
-        token = jwt.encode(payload, 'secret', algorithm='HS256')
+        token = jwt.encode(payload, JWT_SECRET, algorithm='HS256')
         response = Response()
 
         response.set_cookie(key='jwt', value=token, httponly=True)
@@ -57,7 +62,7 @@ class LoginView(APIView):
         }
         return response
     
-# UserView class is used to get the user details
+# AuthView class is used to get the user details
 class AuthView(APIView):
     def get(self, request):
         token = request.COOKIES.get('jwt')
@@ -65,7 +70,7 @@ class AuthView(APIView):
             raise AuthenticationFailed('Unauthenticated')
 
         try:
-            payload = jwt.decode(token, 'secret', algorithms=['HS256'])
+            payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
         except jwt.ExpiredSignatureError:
             raise AuthenticationFailed('Unauthenticated')
 
@@ -85,18 +90,12 @@ class LogoutView(APIView):
         }
         return response
     
-class UsersView(APIView):
+# UsersListView class is used to get all users
+class UsersListView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
-
-    def get_object(self, pk):
-        try:
-            return User.objects.get(pk=pk)
-        except User.DoesNotExist:
-            raise None
 
     def get(self, request):
         token = request.COOKIES.get('jwt')
-
         if not token:
             raise AuthenticationFailed('Unauthenticated')
         
@@ -106,11 +105,14 @@ class UsersView(APIView):
             data=serializer.data
         )
     
+# UserCreateView class is used to create a new user
+class UserCreateView(APIView):
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    
     def post(self, request):
         serializer = UserSerializer(data=request.data)
 
         token = request.COOKIES.get('jwt')
-
         if not token:
             raise AuthenticationFailed('Unauthenticated')
         
@@ -141,14 +143,45 @@ class UsersView(APIView):
         }
         return response
     
-    def patch(self, request, id):
+# UserDetailView class is used to retrieve, update or delete a specific user
+class UserDetailView(APIView):
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_object(self, id):
+        try:
+            return User.objects.get(pk=id)
+        except User.DoesNotExist:
+            return None
+        
+    def get(self, request, id):
         user = self.get_object(id)
-
+        if user is None:
+            return Response(
+                status=status.HTTP_404_NOT_FOUND,
+                data={
+                    'message': 'User no encontrado'
+                }
+            )
+        
         token = request.COOKIES.get('jwt')
-
         if not token:
             raise AuthenticationFailed('Unauthenticated')
         
+        try:
+            jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        except (ExpiredSignatureError, InvalidSignatureError):
+            raise AuthenticationFailed('Unauthenticated')
+        
+        serializer = UserSerializer(user)
+        response = Response()
+        response.data = {
+            'status': status.HTTP_200_OK,
+            'data': serializer.data
+        }
+        return response
+    
+    def patch(self, request, id):
+        user = self.get_object(id)
         if user is None:
             return Response(
                 status=status.HTTP_404_NOT_FOUND,
@@ -157,8 +190,16 @@ class UsersView(APIView):
                 }
             )
         
+        token = request.COOKIES.get('jwt')
+        if not token:
+            raise AuthenticationFailed('Unauthenticated')
+        
+        try:
+            jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        except (ExpiredSignatureError, InvalidSignatureError):
+            raise AuthenticationFailed('Unauthenticated')
+        
         serializer = UserSerializer(user, data=request.data, partial=True)
-
         if serializer.is_valid():
             phone_number = request.data.get('phone', None)
             if phone_number:
@@ -179,12 +220,6 @@ class UsersView(APIView):
     
     def delete(self, request, id):
         user = self.get_object(id)
-
-        token = request.COOKIES.get('jwt')
-
-        if not token:
-            raise AuthenticationFailed('Unauthenticated')
-        
         if user is None:
             return Response(
                 status=status.HTTP_404_NOT_FOUND,
@@ -192,6 +227,10 @@ class UsersView(APIView):
                     'message': 'User not found'
                 }
             )
+        
+        token = request.COOKIES.get('jwt')
+        if not token:
+            raise AuthenticationFailed('Unauthenticated')
         
         user.delete()
         response = Response()
