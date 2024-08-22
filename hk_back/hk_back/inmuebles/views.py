@@ -19,10 +19,6 @@ JWT_SECRET = settings.SECRET_KEY
 # InmueblesPersonalView class is used to get inmuebles of the logged in user
 class InmueblesPersonalView(APIView):
     def get(self, request):
-        user = User.objects.filter(id=payload['id']).first()
-        if user is None:
-            raise AuthenticationFailed('User not found')
-        
         token = request.COOKIES.get('jwt')
         if not token:
             raise AuthenticationFailed('Unauthenticated')
@@ -31,6 +27,10 @@ class InmueblesPersonalView(APIView):
             payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
         except (ExpiredSignatureError, InvalidSignatureError):
             raise AuthenticationFailed('Unauthenticated')
+        
+        user = User.objects.filter(id=payload['id']).first()
+        if user is None:
+            raise AuthenticationFailed('User not found')
         
         serializer = InmueblesSerializer(Inmuebles.objects.filter(asesor=user), many=True)
         return Response(
@@ -59,10 +59,6 @@ class InmueblesAllView(APIView):
 # InmueblesCreateView class is used to create a new inmueble
 class InmueblesCreateView(APIView):
     def post(self, request):
-        user = User.objects.filter(id=payload['id']).first()
-        if user is None:
-            raise AuthenticationFailed('User not found')
-        
         token = request.COOKIES.get('jwt')
         if not token:
             raise AuthenticationFailed('Unauthenticated')
@@ -71,6 +67,10 @@ class InmueblesCreateView(APIView):
             payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
         except (ExpiredSignatureError, InvalidSignatureError):
             raise AuthenticationFailed('Unauthenticated')
+
+        user = User.objects.filter(id=payload['id']).first()
+        if user is None:
+            raise AuthenticationFailed('User not found')
         
         data = request.data.copy()
         data['asesor'] = user.id
@@ -118,6 +118,37 @@ class InmuebleDetailView(APIView):
         response = Response()
         response.data = {
             'status': status.HTTP_200_OK,
+            'data': serializer.data
+        }
+        return response
+    
+    def patch(self, request, id):
+        inmueble = self.get_object(id)
+        if inmueble is None:
+            return Response(
+                status=status.HTTP_404_NOT_FOUND,
+                data={
+                    'message': 'Inmueble no encontrado'
+                }
+            )
+        
+        token = request.COOKIES.get('jwt')
+        if not token:
+            raise AuthenticationFailed('Unauthenticated')
+        
+        try:
+            jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        except (ExpiredSignatureError, InvalidSignatureError):
+            raise AuthenticationFailed('Unauthenticated')
+        
+        serializer = InmueblesSerializer(inmueble, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        response = Response()
+        response.data = {
+            'status': status.HTTP_200_OK,
+            'message': 'Inmueble actualizado exitosamente',
             'data': serializer.data
         }
         return response
