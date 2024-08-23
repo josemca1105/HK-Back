@@ -8,9 +8,12 @@ class Inmuebles(models.Model):
         ('alquiler', 'Alquiler'),
     ]
 
-    ESTADOS_CHOICES = [
+    DISPONIBILIDAD_CHOICES = [
         ('disponible', 'Disponible'),
         ('no disponible', 'No disponible'),
+    ]
+
+    STATUS_CHOICES = [
         ('activo', 'Activo'),
         ('inactivo', 'Inactivo'),
     ]
@@ -19,8 +22,10 @@ class Inmuebles(models.Model):
     codigo = models.CharField(max_length=255)
     titulo = models.CharField(max_length=255)
     descripcion = models.TextField()
+    precio = models.DecimalField(max_digits=10, decimal_places=2)
     direccion = models.CharField(max_length=255)
     estado = models.CharField(max_length=255)
     ciudad = models.CharField(max_length=255)
     tipo = models.CharField(max_length=255, choices=TIPO_CHOICES, default='venta')
-    status = models.CharField(max_length=255, choices=ESTADOS_CHOICES, default='disponible')
+    disponibilidad = models.CharField(max_length=255, choices=DISPONIBILIDAD_CHOICES, default='disponible')
+    status = models.CharField(max_length=255, choices=STATUS_CHOICES, default='activo')
