@@ -6,7 +6,13 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from .models import User
-from .serializers import UserSerializer
+from .serializers import UserSerializer, ResetPasswordEmailRequestSerializer, SetNewPasswordSerializer
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.encoding import smart_str, force_str, smart_bytes, force_bytes, DjangoUnicodeDecodeError
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.contrib.sites.shortcuts import get_current_site
+from django.urls import reverse
+from .utils import Util
 
 import jwt, datetime
 
@@ -239,3 +245,77 @@ class UserDetailView(APIView):
             'message': f'User {id} deleted successfully'
         }
         return response
+    
+# Recuperar contraseña
+class RequestPasswordResetEmail(APIView):
+    serializer_class = ResetPasswordEmailRequestSerializer
+    
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data['email']
+
+        if User.objects.filter(email=email).exists():
+            user = User.objects.get(email=email)
+            uidb64 = urlsafe_base64_encode(smart_bytes(user.id))
+            token = PasswordResetTokenGenerator().make_token(user)
+            current_site = get_current_site(request=request).domain
+            relative_link = reverse('password-reset-confirm', kwargs={'uidb64': uidb64, 'token': token})
+            absurl = f'http://{current_site}{relative_link}'
+            email_body = f'Hola {user.f_name},\nUsa este link para reestablecer tu contraseña {absurl}'
+            data = {
+                'email_body': email_body,
+                'to_email': [user.email],
+                'email_subject': 'Reestablecer contraseña'
+            }
+            try:
+                Util.send_email(data)
+                return Response(
+                    {'success': 'Se ha enviado el link para reestablecer tu contraseña'},
+                    status=status.HTTP_200_OK
+                )
+            except Exception as e:
+                print(f'Error sending email: {e}')
+                return Response(
+                    {'error': 'Error al enviar el correo electrónico'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        return Response(
+            {'error': 'Email not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+# PasswordTokenCheck class is used to check if the token is valid
+class PasswordTokenCheck(APIView):
+    def get(self, request, uidb64, token):
+        try:
+            id = smart_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(id=id)
+
+            if not PasswordResetTokenGenerator().check_token(user, token):
+                return Response({'error': 'Token is not valid, please request a new one'}, status=status.HTTP_401_UNAUTHORIZED)
+
+            return Response({
+                'success': True,
+                'message': 'Credentials valid',
+                'uidb64': uidb64,
+                'token': token
+            }, status=status.HTTP_200_OK)
+
+        except DjangoUnicodeDecodeError as identifier:
+            if not PasswordResetTokenGenerator().check_token(user):
+                return Response({'error': 'Token is not valid, please request a new one'}, status=status.HTTP_401_UNAUTHORIZED)
+
+# SetNewPassword class is used to set a new password
+class SetNewPassword(APIView):
+    serializer_class = SetNewPasswordSerializer
+
+    def patch(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(
+            {
+                'success': True,
+                'message': 'Password reset success'
+            }, status=status.HTTP_200_OK)
