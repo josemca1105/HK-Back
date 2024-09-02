@@ -6,7 +6,10 @@ from .views import (
     LogoutView,
     UsersListView,
     UserCreateView,
-    UserDetailView
+    UserDetailView,
+    RequestPasswordResetEmail,
+    PasswordTokenCheck,
+    SetNewPassword
 )
 
 urlpatterns = [
@@ -19,4 +22,7 @@ urlpatterns = [
     path('users/<int:id>', UserDetailView.as_view(), name='users_detail_api'),
     path('users-update/<int:id>', UserDetailView.as_view(), name='users_update_api'),
     path('users-delete/<int:id>', UserDetailView.as_view(), name='users_delete_api'),
+    path('request-reset-email', RequestPasswordResetEmail.as_view(), name='request-reset-email'),
+    path('password-reset/<str:uidb64>/<str:token>', PasswordTokenCheck.as_view(), name='password-reset-confirm'),
+    path('password-reset-complete', SetNewPassword.as_view(), name='password-reset-complete')
 ]
