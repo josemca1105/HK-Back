@@ -260,10 +260,14 @@ class RequestPasswordResetEmail(APIView):
             user = User.objects.get(email=email)
             uidb64 = urlsafe_base64_encode(smart_bytes(user.id))
             token = PasswordResetTokenGenerator().make_token(user)
-            current_site = get_current_site(request=request).domain
-            relative_link = reverse('password-reset-confirm', kwargs={'uidb64': uidb64, 'token': token})
-            absurl = f'http://{current_site}{relative_link}'
-            email_body = f'Hola {user.f_name},\nUsa este link para reestablecer tu contraseña {absurl}'
+
+            # La URL del frontend de Angular
+            frontend_domain = "http://localhost:4200"
+            relative_link = f'/create-new-password?uidb64={uidb64}&token={token}'
+
+            # Concatenar la URL del frontend con el link relativo
+            absurl = f'{frontend_domain}{relative_link}'
+            email_body = f'Hola {user.f_name},\nUsa este link para reestablecer tu contraseña: {absurl}'
             data = {
                 'email_body': email_body,
                 'to_email': [user.email],
