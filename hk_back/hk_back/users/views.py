@@ -318,8 +318,27 @@ class SetNewPassword(APIView):
     def patch(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        return Response(
-            {
-                'success': True,
-                'message': 'Password reset success'
-            }, status=status.HTTP_200_OK)
+        password = serializer.validated_data['password']
+        uidb64 = serializer.validated_data['uidb64']
+        token = serializer.validated_data['token']
+
+        try:
+            id = smart_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(id=id)
+
+            if not PasswordResetTokenGenerator().check_token(user, token):
+                return Response({'error': 'Token is not valid, please request a new one'}, status=status.HTTP_401_UNAUTHORIZED)
+
+            user.set_password(password)
+            user.save()
+
+            return Response(
+                {
+                    'success': True,
+                    'message': 'Password reset success'
+                }, status=status.HTTP_200_OK)
+
+        except DjangoUnicodeDecodeError as identifier:
+            return Response(
+                {'error': 'Token is not valid, please request a new one'},
+                status=status.HTTP_401_UNAUTHORIZED)
