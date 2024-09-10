@@ -16,6 +16,9 @@ from .utils import Util
 
 import jwt, datetime
 
+import random
+import string
+
 from jwt.exceptions import ExpiredSignatureError, InvalidSignatureError
 
 from django.conf import settings
@@ -24,21 +27,6 @@ JWT_SECRET = settings.SECRET_KEY
 
 # Create your views here.
 
-# RegisterView class is used to register a new user
-class RegisterView(APIView):
-    def post(self, request):
-        serializer = UserSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
-        response = Response()
-        response.data = {
-            'status': status.HTTP_200_OK,
-            'message': 'User registered successfully',
-            'data': serializer.data
-        }
-        return response
-    
 # LoginView class is used to login a user
 class LoginView(APIView):
     def post(self, request):
