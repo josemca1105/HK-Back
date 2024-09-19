@@ -13,11 +13,9 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
 from .utils import Util
+from django.template.loader import render_to_string
 
 import jwt, datetime
-
-import random
-import string
 
 from jwt.exceptions import ExpiredSignatureError, InvalidSignatureError
 
@@ -236,28 +234,30 @@ class UserDetailView(APIView):
     
 # Recuperar contraseña
 class RequestPasswordResetEmail(APIView):
-    serializer_class = ResetPasswordEmailRequestSerializer
-    
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = ResetPasswordEmailRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         email = serializer.validated_data['email']
 
         if User.objects.filter(email=email).exists():
             user = User.objects.get(email=email)
-            uidb64 = urlsafe_base64_encode(smart_bytes(user.id))
+            uidb64 = urlsafe_base64_encode(force_bytes(user.id))
             token = PasswordResetTokenGenerator().make_token(user)
+            # current_site = get_current_site(request=request).domain
+            # relative_link = reverse('password-reset-confirm', kwargs={'uidb64': uidb64, 'token': token})
+            absurl = f'http://localhost:4200/reestablecer-clave/{uidb64}/{token}'
+            #email_body = f'Hola {user.name},\nUsa este link para reestablecer tu contraseña {absurl}'
+            user_name = user.f_name.capitalize()
 
-            # La URL del frontend de Angular
-            frontend_domain = "http://localhost:4200"
-            relative_link = f'/create-new-password?uidb64={uidb64}&token={token}'
-
-            # Concatenar la URL del frontend con el link relativo
-            absurl = f'{frontend_domain}{relative_link}'
-            email_body = f'Hola {user.f_name},\nUsa este link para reestablecer tu contraseña: {absurl}'
+            context = {
+                'user': user,
+                'reset_link': absurl,
+                'user_name': user_name
+            }
+            html_message = render_to_string("reset-password.html", context)
             data = {
-                'email_body': email_body,
+                'email_body': html_message,
                 'to_email': [user.email],
                 'email_subject': 'Reestablecer contraseña'
             }
@@ -295,9 +295,9 @@ class PasswordTokenCheck(APIView):
                 'token': token
             }, status=status.HTTP_200_OK)
 
-        except DjangoUnicodeDecodeError as identifier:
-            if not PasswordResetTokenGenerator().check_token(user):
-                return Response({'error': 'Token is not valid, please request a new one'}, status=status.HTTP_401_UNAUTHORIZED)
+        except DjangoUnicodeDecodeError:
+            return Response({'error': 'Token is not valid, please request a new one'},
+                            status=status.HTTP_401_UNAUTHORIZED)
 
 # SetNewPassword class is used to set a new password
 class SetNewPassword(APIView):
@@ -305,28 +305,11 @@ class SetNewPassword(APIView):
 
     def patch(self, request):
         serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        password = serializer.validated_data['password']
-        uidb64 = serializer.validated_data['uidb64']
-        token = serializer.validated_data['token']
-
-        try:
-            id = smart_str(urlsafe_base64_decode(uidb64))
-            user = User.objects.get(id=id)
-
-            if not PasswordResetTokenGenerator().check_token(user, token):
-                return Response({'error': 'Token is not valid, please request a new one'}, status=status.HTTP_401_UNAUTHORIZED)
-
-            user.set_password(password)
-            user.save()
-
+        if serializer.is_valid(raise_exception=True):
+            print('Serializer is valid.')
             return Response(
-                {
-                    'success': True,
-                    'message': 'Password reset success'
+                {'success': True, 'message': 'Password reset success'
                 }, status=status.HTTP_200_OK)
-
-        except DjangoUnicodeDecodeError as identifier:
-            return Response(
-                {'error': 'Token is not valid, please request a new one'},
-                status=status.HTTP_401_UNAUTHORIZED)
+        else:
+            print('Serializer is invalid.')
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

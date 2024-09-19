@@ -69,39 +69,37 @@ class UserSerializer(serializers.ModelSerializer):
     
 class ResetPasswordEmailRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(min_length=2)
-    
+
     class Meta:
         fields = ['email']
 
-    def validate(self, attrs):
-        email = attrs.get('email', '')
-        if not User.objects.filter(email=email).exists():
-            raise serializers.ValidationError('Email not found')
-        return attrs
 
 class SetNewPasswordSerializer(serializers.Serializer):
-    password = serializers.CharField(min_length=6, max_length=68, write_only=True)
-    uidb64 = serializers.CharField(min_length=1, write_only=True)
+    password = serializers.CharField(min_length=6, max_length=20, write_only=True)
     token = serializers.CharField(min_length=1, write_only=True)
+    uidb64 = serializers.CharField(min_length=1, write_only=True)
 
     class Meta:
-        fields = ['password', 'uidb64', 'token']
+        fields = ['password', 'token', 'uidb64']
 
     def validate(self, attrs):
         try:
             password = attrs.get('password')
             token = attrs.get('token')
             uidb64 = attrs.get('uidb64')
+            print(f'Password: {password}, Token: {token}, Uidb64: {uidb64}')
 
-            id = smart_str(urlsafe_base64_decode(uidb64))
+            id = force_str(urlsafe_base64_decode(uidb64))
             user = User.objects.get(id=id)
+            print(f'user ID: {id}')
 
             if not PasswordResetTokenGenerator().check_token(user, token):
-                raise serializers.ValidationError('Token is not valid, please request a new one')
+                raise AuthenticationFailed('The reset link is invalid', 401)
 
             user.set_password(password)
             user.save()
 
-            return attrs
-        except DjangoUnicodeDecodeError as identifier:
-            raise serializers.ValidationError('Token is not valid, please request a new one')
+            return user
+        except Exception as e:
+            print(f'Exception: {e}')
+            raise AuthenticationFailed('The reset link is invalid', 401)
