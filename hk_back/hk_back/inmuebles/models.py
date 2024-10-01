@@ -26,7 +26,7 @@ class Inmuebles(models.Model):
     direccion = models.CharField(max_length=255)
     estado = models.CharField(max_length=255)
     ciudad = models.CharField(max_length=255)
-    n_baños = models.CharField(max_length=255)
+    n_banos = models.CharField(max_length=255)
     n_habitaciones = models.CharField(max_length=255)
     tipo = models.CharField(max_length=255, choices=TIPO_CHOICES, default='venta')
     disponibilidad = models.CharField(max_length=255, choices=DISPONIBILIDAD_CHOICES, default='disponible')
