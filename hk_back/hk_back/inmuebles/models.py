@@ -1,5 +1,6 @@
 from django.db import models
 from hk_back.users.models import User
+from django.contrib.postgres.fields import ArrayField
 
 # Create your models here.
 class Inmuebles(models.Model):
@@ -31,3 +32,8 @@ class Inmuebles(models.Model):
     tipo = models.CharField(max_length=255, choices=TIPO_CHOICES, default='venta')
     disponibilidad = models.CharField(max_length=255, choices=DISPONIBILIDAD_CHOICES, default='disponible')
     status = models.CharField(max_length=255, choices=STATUS_CHOICES, default='activo')
+
+    imagenes = ArrayField(models.URLField(), blank=True, default=list)
+
+    def __str__(self):
+        return self.titulo
