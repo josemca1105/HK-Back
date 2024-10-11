@@ -247,7 +247,7 @@ class RequestPasswordResetEmail(APIView):
             # current_site = get_current_site(request=request).domain
             # relative_link = reverse('password-reset-confirm', kwargs={'uidb64': uidb64, 'token': token})
             absurl = f'http://localhost:4200/reestablecer-clave/{uidb64}/{token}'
-            #email_body = f'Hola {user.name},\nUsa este link para reestablecer tu contraseña {absurl}'
+            #email_body = f'Hola {user.name},\nUsa este link para restablecer tu contraseña {absurl}'
             user_name = user.f_name.capitalize()
 
             context = {
@@ -259,12 +259,12 @@ class RequestPasswordResetEmail(APIView):
             data = {
                 'email_body': html_message,
                 'to_email': [user.email],
-                'email_subject': 'Reestablecer contraseña'
+                'email_subject': 'Restablecer contraseña'
             }
             try:
                 Util.send_email(data)
                 return Response(
-                    {'success': 'Se ha enviado el link para reestablecer tu contraseña'},
+                    {'success': 'Se ha enviado el link para restablecer tu contraseña'},
                     status=status.HTTP_200_OK
                 )
             except Exception as e:
