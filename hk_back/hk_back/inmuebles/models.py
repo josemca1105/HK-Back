@@ -20,7 +20,6 @@ class Inmuebles(models.Model):
     ]
 
     asesor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='inmuebles')
-    codigo = models.CharField(max_length=255, unique=True)
     titulo = models.CharField(max_length=255)
     descripcion = models.TextField()
     precio = models.DecimalField(max_digits=10, decimal_places=2)
