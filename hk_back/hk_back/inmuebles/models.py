@@ -31,6 +31,10 @@ class Inmuebles(models.Model):
     tipo = models.CharField(max_length=255, choices=TIPO_CHOICES, default='venta')
     disponibilidad = models.CharField(max_length=255, choices=DISPONIBILIDAD_CHOICES, default='disponible')
     status = models.CharField(max_length=255, choices=STATUS_CHOICES, default='activo')
+    pozo = models.CharField(max_length=255)
+    planta = models.CharField(max_length=255)
+    documentos = models.CharField(max_length=255)
+    observaciones = models.TextField(default='Sin observaciones')
 
     imagenes = ArrayField(models.URLField(), blank=True, default=list)
 
