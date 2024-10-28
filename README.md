@@ -81,12 +81,3 @@ python manage.py runserver
 ### 8. Acceder al Proyecto
 
 Abre tu navegador web y ve a `http://127.0.0.1:8000`.
-
-## Contribución
-
-1. Haz un fork del proyecto.
-2. Crea una nueva rama (`git checkout -b feature/nueva-funcionalidad`).
-3. Realiza tus cambios y haz commit (`git commit -am 'Agrega nueva funcionalidad'`).
-4. Envía tus cambios a la rama (`git push origin feature/nueva-funcionalidad`).
-5. Abre un Pull Request.
-trucciones claras y paso a paso para que cualquier desarrollador pueda configurar y ejecutar el proyecto Django en su entorno local. No olvides ajustar los nombres de usuario, el nombre del proyecto, las URLs y cualquier otra información específica para tu proyecto.
