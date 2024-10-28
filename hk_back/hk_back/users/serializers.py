@@ -10,6 +10,11 @@ import string
 
 from .utils import Util
 from django.template.loader import render_to_string
+import environ
+from pathlib import Path
+
+env = environ.Env()
+environ.Env.read_env(env_file=Path(__file__).resolve().parent.parent / ".env")
 
 def generate_password():
     characters = string.ascii_letters + string.digits + "*"
@@ -48,7 +53,8 @@ class UserSerializer(serializers.ModelSerializer):
         # Enviar la contraseña al correo del usuario
         email_body = render_to_string('welcome.html', {
             'f_name': instance.f_name,
-            'password': password
+            'password': password,
+            'login_url': env('LOGIN')
         })
         data = {
             'email_body': email_body,

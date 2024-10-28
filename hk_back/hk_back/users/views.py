@@ -21,6 +21,12 @@ from jwt.exceptions import ExpiredSignatureError, InvalidSignatureError
 
 from django.conf import settings
 
+import environ
+from pathlib import Path
+
+env = environ.Env()
+environ.Env.read_env(env_file=Path(__file__).resolve().parent.parent / ".env")
+
 JWT_SECRET = settings.SECRET_KEY
 
 # Create your views here.
@@ -244,10 +250,7 @@ class RequestPasswordResetEmail(APIView):
             user = User.objects.get(email=email)
             uidb64 = urlsafe_base64_encode(force_bytes(user.id))
             token = PasswordResetTokenGenerator().make_token(user)
-            # current_site = get_current_site(request=request).domain
-            # relative_link = reverse('password-reset-confirm', kwargs={'uidb64': uidb64, 'token': token})
-            absurl = f'http://localhost:4200/reestablecer-clave/{uidb64}/{token}'
-            #email_body = f'Hola {user.name},\nUsa este link para restablecer tu contraseña {absurl}'
+            absurl = f'{env('REQUEST_RESET_PASSWORD')}/{uidb64}/{token}'
             user_name = user.f_name.capitalize()
 
             context = {
